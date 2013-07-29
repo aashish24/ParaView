@@ -72,6 +72,7 @@ QT4_WRAP_CPP(MOC_SRCS
   vtkVRInteractorStyleFactory.h
   vtkVRQueue.h
   vtkVRTrackStyle.h
+  vtkVRHMDTrackStyle.h
   )
 
 QT4_WRAP_UI(UI_SRCS
@@ -96,6 +97,7 @@ SET( VR_SOURCE_FILES
   vtkVRInteractorStyleFactory.cxx
   vtkVRQueue.cxx
   vtkVRTrackStyle.cxx
+  vtkVRHMDTrackStyle.cxx
   vtkVRSpaceNavigatorGrabWorldStyle.cxx
   ${MOC_SRCS})
 
