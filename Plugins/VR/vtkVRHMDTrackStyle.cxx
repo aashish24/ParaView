@@ -31,10 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ========================================================================*/
 /*----------------------------------------------------------------------
 Acknowledgement:
-This contribution is part of the EU founded project "VIT III - Virtual 
-turbine engine" at the Brandenburg University of Technology Cottbus -
-Senftenberg in cooperation with Rolls-Royce Deutschland. Implemented by
-Stephan ROGGE
+This contribution has been developed at the "Brandenburg University of
+Technology Cottbus - Senftenberg" at the chair of "Media Technology."
+Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
 #include "vtkVRHMDTrackStyle.h"
 

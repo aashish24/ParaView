@@ -31,18 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ========================================================================*/
 /*----------------------------------------------------------------------
 Acknowledgement:
-This contribution is part of the EU founded project "VIT III - Virtual 
-turbine engine" at the Brandenburg University of Technology Cottbus -
-Senftenberg in cooperation with Rolls-Royce Deutschland. Implemented by
-Stephan ROGGE
+This contribution has been developed at the "Brandenburg University of
+Technology Cottbus - Senftenberg" at the chair of "Media Technology."
+Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
 // .NAME vtkVRHMDTrackStyle - a tracker style for HMD purpose
 // .SECTION Description
-// vtkVRHMDTrackStyle is a tracker style which inverts a given pose 
-// matrix and push that to a defined (compatible) property. In this way 
-// a user can connect the tracked head pose to the model view 
-// transformation matrix of a render view and use his head as a 
-// "navigator". This enables the usage of HMD devices with ParaView. 
+// vtkVRHMDTrackStyle is a tracker style which inverts a given pose
+// matrix and push that to a defined (compatible) property. In this way
+// a user can connect the tracked head pose to the model view
+// transformation matrix of a render view and use his head as a
+// "navigator". This enables the usage of HMD devices with ParaView.
 
 #ifndef __vtkVRHMDTrackStyle_h_
 #define __vtkVRHMDTrackStyle_h_
