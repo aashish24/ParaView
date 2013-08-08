@@ -1,0 +1,50 @@
+<ServerManagerConfiguration>
+  <ProxyGroup name="views">
+    <RenderViewProxy name="RenderViewOculusRift" class="vtkPVRenderViewOculusRift"
+        processes="client|renderserver|dataserver"
+        base_proxygroup="views" base_proxyname="RenderView">
+		<DoubleVectorProperty command="SetDisplaySettings"
+                         default_values="1.0 1.0 -0.1"
+                         name="DisplaySettings"
+                         number_of_elements="3">
+		</DoubleVectorProperty>
+		<DoubleVectorProperty command="SetDistortionK"
+                         default_values="0 0 0 0"
+                         name="DistortionK"
+                         number_of_elements="4">
+		</DoubleVectorProperty>
+		<DoubleVectorProperty argument_is_array="1"
+						 command="SetHeadOrientation"
+                         default_values="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"
+                         name="HeadOrientation"
+						 immediate_update="1"
+                         number_of_elements="16">
+		</DoubleVectorProperty>
+		<DoubleVectorProperty command="SetDistortionScale"
+                         default_values="1.0"
+                         name="DistortionScale"
+                         number_of_elements="1">
+		</DoubleVectorProperty>
+		<DoubleVectorProperty command="SetDistortionXCenterOffset"
+                         default_values="0.0"
+                         name="DistortionXCenterOffset"
+                         number_of_elements="1">
+		</DoubleVectorProperty>
+		<IntVectorProperty command="SetOffscreenTextureDim"
+                         default_values="1280 800"
+                         name="OffscreenTextureDim"
+                         number_of_elements="2">
+		</IntVectorProperty>
+		<IntVectorProperty command="SetTrackingClient"
+                         default_values="1"
+                         name="TrackingOnClient"
+                         number_of_elements="1">
+		</IntVectorProperty>
+		<IntVectorProperty command="SetStereoPostClient"
+                         default_values="1"
+                         name="StereoAndPostOnClient"
+                         number_of_elements="1">
+		</IntVectorProperty>
+    </RenderViewProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>
