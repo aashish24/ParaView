@@ -51,10 +51,16 @@ set(Module_SRCS
   pqCheckBoxPixMaps.h
   pqCollapsedGroup.cxx
   pqCollapsedGroup.h
+  pqColorButtonEventPlayer.cxx
+  pqColorDialogEventPlayer.cxx
+  pqColorDialogEventPlayer.h
+  pqColorDialogEventTranslator.cxx
+  pqColorDialogEventTranslator.h
+  pqColorButtonEventPlayer.h
+  pqColorButtonEventTranslator.cxx
+  pqColorButtonEventTranslator.h
   pqColorChooserButton.cxx
   pqColorChooserButton.h
-  pqColorDialog.cxx
-  pqColorDialog.h
   pqColorTableDelegate.cxx
   pqColorTableDelegate.h
   pqColorTableModel.cxx
@@ -75,6 +81,8 @@ set(Module_SRCS
   pqDoubleRangeWidget.h
   pqDoubleSpinBox.cxx
   pqDoubleSpinBox.h
+  pqExpandableTableView.cxx
+  pqExpandableTableView.h
   pqExpanderButton.cxx
   pqExpanderButton.h
   pqFlatTreeView.cxx
@@ -140,16 +148,20 @@ QT4_WRAP_CPP(QtWidgets_MOC_SOURCES
   pqCheckableHeaderView.h
   pqCheckBoxPixMaps.h
   pqCollapsedGroup.h
+  pqColorButtonEventPlayer.h
+  pqColorButtonEventTranslator.h
   pqColorChooserButton.h
-  pqColorDialog.h
+  pqColorDialogEventPlayer.h
+  pqColorDialogEventTranslator.h
   pqColorTableModel.h
+  pqConsoleWidget.h
   pqConsoleWidgetEventPlayer.h
   pqConsoleWidgetEventTranslator.h
-  pqConsoleWidget.h
   pqDelimitedTextParser.h
   pqDoubleRangeDialog.h
   pqDoubleRangeWidget.h
   pqDoubleSpinBox.h
+  pqExpandableTableView.h
   pqExpanderButton.h
   pqFlatTreeView.h
   pqLineEdit.h
