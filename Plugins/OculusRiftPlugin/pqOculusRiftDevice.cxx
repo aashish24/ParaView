@@ -37,9 +37,9 @@ Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
 #include "pqOculusRiftDevice.h"
 
-#include <QTimer.h>
-#include <QThread.h>
-#include <QDebug.h>
+#include <QTimer>
+#include <QThread>
+#include <QDebug>
 
 // Oculus Rift SDK
 #include "OVR.h"

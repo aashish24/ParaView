@@ -12,7 +12,6 @@ else()
   include_directories(${VTK_INCLUDE_DIRS})
 endif()
 
-SET (QT_USE_QTNETWORK TRUE)
 INCLUDE(${QT_USE_FILE})
 
 SET (OR_SDK_INCLUDE_DIR "" CACHE PATH "Path to Oculus Rift SDK include files.")
@@ -86,4 +85,14 @@ add_paraview_plugin(
     ${ENCODED_STRING_FILES}
   )
 
-TARGET_LINK_LIBRARIES (OculusRiftPlugin pqApplicationComponents ${OR_SDK_LIBRARY} winmm.lib)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  # Append "udev" library to the Oculus SDK library
+  set(OR_SDK_LIBRARY "${OR_SDK_LIBRARY}" "udev")
+endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  # Append "winmm" library to the Oculus SDK library
+  set(OR_SDK_LIBRARY "${OR_SDK_LIBRARY}" "winmm.lib")
+endif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+
+TARGET_LINK_LIBRARIES (OculusRiftPlugin pqApplicationComponents ${OR_SDK_LIBRARY})

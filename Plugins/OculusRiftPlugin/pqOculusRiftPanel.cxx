@@ -56,7 +56,7 @@ Implemented by Stephan ROGGE
 #include "pqView.h"
 #include "pqRenderView.h"
 
-#include <QThread.h>
+#include <QThread>
 #include <QStringList>
 #include <QDebug>
 
