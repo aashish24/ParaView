@@ -23,52 +23,38 @@ Implemented by Stephan ROGGE
 #include "vtkProcessModule.h"
 #include "vtkMultiProcessController.h"
 #include "vtkObjectFactory.h"
-#include "vtkCamera.h"
-#include "vtkRenderer.h"
-#include "vtkRenderWindow.h"
-#include "vtkRenderViewBase.h" 
 #include "vtkSmartPointer.h"
-#include "vtkPVView.h"
+#include "vtkRenderWindow.h"
 #include "vtkPVSynchronizedRenderer.h"
-#include "vtkPVSynchronizedRenderWindows.h"
-#include "vtkMatrix4x4.h"
-#include "vtkTransform.h"
 
 // Local includes
-#include "vtkLensCorrectionPass.h" 
+#include "vtkOVRPostPass.h" 
 
 vtkStandardNewMacro(vtkPVRenderViewOculusRift);
 //----------------------------------------------------------------------------
 vtkPVRenderViewOculusRift::vtkPVRenderViewOculusRift()
 {
-  this->DisplaySettings[0] = 1.0;
-  this->DisplaySettings[1] = 1.0;
-  this->DisplaySettings[2] = -0.1;
+  this->ProjectionOffset[0] = 0.0;
+  this->ProjectionOffset[1] = 0.0;
   this->DistortionK[0] = 1.0;
   this->DistortionK[1] = 0.22;
   this->DistortionK[2] = 0.24;
   this->DistortionK[3] = 0.0; 
-  this->OffscreenTextureDim[0] = 1280;
-  this->OffscreenTextureDim[1] = 800;
-  this->HeadOrientation = vtkTransform::New();
-  this->HeadOrientation->Identity();
-  this->DummyTransformation = vtkTransform::New();
-  this->DummyTransformation->Identity();
-  this->LensPass = NULL;
-  this->TrackingClient = 1;
+  this->ChromaAberation[0] = 0.0;
+  this->ChromaAberation[1] = 0.0;
+  this->ChromaAberation[2] = 0.0;
+  this->ChromaAberation[3] = 0.0; 
+  this->OVRPass = NULL;
   this->StereoPostClient = 1;
 }
 
 //----------------------------------------------------------------------------
 vtkPVRenderViewOculusRift::~vtkPVRenderViewOculusRift()
 {
-  this->HeadOrientation->Delete();
-  this->DummyTransformation->Delete();
-
-  if(this->LensPass)
+  if(this->OVRPass)
     {
-    this->LensPass->ReleaseGraphicsResources(this->GetRenderWindow());
-    this->LensPass->Delete();
+    this->OVRPass->ReleaseGraphicsResources(this->GetRenderWindow());
+    this->OVRPass->Delete();
     }
 }
 
@@ -77,120 +63,32 @@ void vtkPVRenderViewOculusRift::Initialize(unsigned int id)
 {
   this->Superclass::Initialize(id);
 
-  this->LensPass = vtkLensCorrectionPass::New();
-  this->SynchronizedRenderers->SetImageProcessingPass(this->LensPass);
+  this->OVRPass = vtkOVRPostPass::New();
+  this->SynchronizedRenderers->SetImageProcessingPass(this->OVRPass);
 }
 
 //----------------------------------------------------------------------------
 void vtkPVRenderViewOculusRift::Render(bool interactive, bool skip_rendering)
 {  
-  vtkCamera *camera = this->GetRenderer()->GetActiveCamera();
   bool isClient = vtkProcessModule::GetProcessType() == 
     vtkProcessModule::PROCESS_CLIENT;
-  
-  if(!isClient || (isClient && this->TrackingClient))
-    {      
-    this->DummyTransformation->DeepCopy(this->HeadOrientation); 
-    camera->SetUserViewTransform(this->DummyTransformation);
-    //camera->SetUseOffAxisProjection(1);
-    //camera->OrthogonalizeViewUp();
-    }  
 
- 
+  if(this->OVRPass)
+    {
+    this->OVRPass->SetEyeSeparation(this->EyeSeparation);
+    this->OVRPass->SetProjectionOffset(this->ProjectionOffset);
+    this->OVRPass->SetDistortionK(this->DistortionK);
+    this->OVRPass->SetDistortionScale(this->DistortionScale);
+    this->OVRPass->SetChromaAberration(this->ChromaAberation); 
+    }
+  
   if(isClient)
     {
-    int oldState = this->LensPass->GetEnable();
-    this->LensPass->SetEnable(this->StereoPostClient);
-    camera->SetUseOffAxisProjection(this->StereoPostClient);
-    if(this->StereoPostClient && !oldState)
-      {
-      this->GetRenderer()->ResetCamera();
-      this->GetRenderer()->ResetCameraClippingRange();
-      camera->OrthogonalizeViewUp();
-      }
+    int oldState = this->OVRPass->GetEnable();
+    this->OVRPass->SetEnable(this->StereoPostClient);
     } 
 
-  Superclass::Render(interactive, skip_rendering);        
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetDisplaySettings(double width, 
-  double height, double distance)
-{
-  this->DisplaySettings[0] = width;
-  this->DisplaySettings[1] = height;
-  this->DisplaySettings[2] = distance;
-  if(this->LensPass)
-    {
-    this->LensPass->SetDisplaySettings(this->DisplaySettings);
-    }
-  this->Modified();
-}
-
- //----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetDistortionK(double distk0, double distk1, 
-  double distk2, double distk3)
-{
-  this->DistortionK[0] = distk0;
-  this->DistortionK[1] = distk1;
-  this->DistortionK[2] = distk2;
-  this->DistortionK[3] = distk3;
-  this->Modified();
-  if(this->LensPass)
-    {
-    this->LensPass->SetDistortionK(this->DistortionK);
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetDistortionXCenterOffset(
-  double distXCenterOffset)
-{
-  this->DistortionXCenterOffset = distXCenterOffset;
-  this->Modified();
-  if(this->LensPass)
-    {
-    this->LensPass->SetDistortionXCenterOffset(this->DistortionXCenterOffset);
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetDistortionScale(double distScale)
-{
-  this->DistortionScale = distScale;
-  this->Modified();
-  if(this->LensPass)
-    {
-    this->LensPass->SetDistortionScale(this->DistortionScale);
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetOffscreenTextureDim(int dimX, int dimY)
-{
-  this->OffscreenTextureDim[0] = dimX;
-  this->OffscreenTextureDim[1] = dimY;
-  this->Modified();
-  if(this->LensPass)
-    {
-    this->LensPass->SetTextureDimension(dimX, dimY);
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetHeadOrientation(vtkMatrix4x4* matrix)
-{
-  this->HeadOrientation->SetMatrix(matrix);
-  this->HeadOrientation->Modified();
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
-void vtkPVRenderViewOculusRift::SetHeadOrientation(const double head[16])
-{
-  this->HeadOrientation->SetMatrix(head);
-  this->HeadOrientation->Modified();
-  this->Modified();    
+  Superclass::Render(interactive, skip_rendering);
 }
 
 //----------------------------------------------------------------------------

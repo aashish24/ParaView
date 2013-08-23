@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkLensCorrectionPass.cxx
+  Module:    vtkOVRPostPass.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -18,15 +18,15 @@ This contribution has been developed at the "Brandenburg University of
 Technology Cottbus - Senftenberg" at the chair of "Media Technology."
 Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
-#include "vtkLensCorrectionPass.h"
+#include "vtkOVRPostPass.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkProcessModule.h"
+#include "vtkgl.h"
 #include <assert.h>
 #include "vtkCamera.h"
 #include "vtkRenderer.h"
 #include "vtkRenderState.h"
-#include "vtkgl.h"
 #include "vtkFrameBufferObject.h"
 #include "vtkTextureObject.h"
 #include "vtkShaderProgram2.h"
@@ -34,24 +34,29 @@ Implemented by Stephan ROGGE
 #include "vtkShader2Collection.h"
 #include "vtkUniformVariables.h"
 #include "vtkOpenGLRenderWindow.h"
+#include "vtkOpenGLExtensionManager.h"
 #include "vtkOpenGLError.h"
 #include "vtkTextureUnitManager.h"
 #include "vtkTimerLog.h"
 
-vtkStandardNewMacro(vtkLensCorrectionPass);
+vtkStandardNewMacro(vtkOVRPostPass);
 
-extern const char *vtkLensCorrectionPassShader_fs;
+extern const char *vtkOVRPostShaderSimple_fs;
+extern const char *vtkOVRPostShaderFull_fs;
 
 // ----------------------------------------------------------------------------
-vtkLensCorrectionPass::vtkLensCorrectionPass()
+vtkOVRPostPass::vtkOVRPostPass()
 {
   this->Enable = 1;
   this->DistortionK[0] = 1.0;
   this->DistortionK[1] = 0.22;
   this->DistortionK[2] = 0.24;
   this->DistortionK[3] = 0.0;
-  this->DistortionXCenterOffset = 0.0;
   this->DistortionScale = 1.0;
+  this->ChromaAberration[0] = 0.0;
+  this->ChromaAberration[1] = 0.0;
+  this->ChromaAberration[2] = 0.0;
+  this->ChromaAberration[3] = 0.0; 
   this->Program = 0;
   this->OutputFrameBuffer = 0;
   this->OutputTexture = 0;
@@ -63,7 +68,7 @@ vtkLensCorrectionPass::vtkLensCorrectionPass()
 }
 
 // ----------------------------------------------------------------------------
-vtkLensCorrectionPass::~vtkLensCorrectionPass()
+vtkOVRPostPass::~vtkOVRPostPass()
 {
   if(this->Program!=0)
     {
@@ -83,22 +88,22 @@ vtkLensCorrectionPass::~vtkLensCorrectionPass()
 }
 
 // ----------------------------------------------------------------------------
-void vtkLensCorrectionPass::PrintSelf(ostream& os, vtkIndent indent)
+void vtkOVRPostPass::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 }
 
 // ----------------------------------------------------------------------------
-void vtkLensCorrectionPass::SetDistortionScale(double distScale)
+void vtkOVRPostPass::SetDistortionScale(double distScale)
 {
   this->DistortionScale = distScale;
-  this->SetTextureScale(distScale);
+  this->SetRenderTextureScale(distScale, distScale);
 }
 // ----------------------------------------------------------------------------
 // Description:
 // Perform rendering according to a render state \p s.
 // \pre s_exists: s!=0
-void vtkLensCorrectionPass::Render(const vtkRenderState *s)
+void vtkOVRPostPass::Render(const vtkRenderState *s)
 {
   assert("pre: s_exists" && s!=0);
 
@@ -122,6 +127,12 @@ void vtkLensCorrectionPass::Render(const vtkRenderState *s)
     vtkRenderer *r=s->GetRenderer();
     // Test for Hardware support. If not supported, just render the delegate.
     bool supported=vtkFrameBufferObject::IsSupported(r->GetRenderWindow());
+
+    vtkOpenGLRenderWindow *renwin
+      = vtkOpenGLRenderWindow::SafeDownCast(r->GetRenderWindow());
+    vtkOpenGLExtensionManager *extensions = renwin->GetExtensionManager();
+
+    extensions->LoadExtension("GL_ARB_framebuffer_object");
 
     if(!supported)
       {
@@ -169,8 +180,8 @@ void vtkLensCorrectionPass::Render(const vtkRenderState *s)
     // Finally, draw the Output texture to screen (Full screen quad shader)
     this->DrawTextureToScreen();
 
-    glDrawBuffer(savedDrawBuffer);
-
+    //glDrawBuffer(savedDrawBuffer);
+    
     this->FrameCounter++;
 
     this->Timer->StopTimer();
@@ -193,7 +204,7 @@ void vtkLensCorrectionPass::Render(const vtkRenderState *s)
 }
 
 // ----------------------------------------------------------------------------
-void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s, 
+void vtkOVRPostPass::ApplyPostPass(const vtkRenderState *s, 
   vtkTextureObject* to, int LeftEye)
 {
   vtkRenderer *r = s->GetRenderer();
@@ -238,12 +249,12 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
     this->Program->SetContext(
       static_cast<vtkOpenGLRenderWindow *>(
       this->OutputFrameBuffer->GetContext()));
-    vtkShader2 *shader=vtkShader2::New();
-    shader->SetType(VTK_SHADER_TYPE_FRAGMENT);
-    shader->SetSourceCode(vtkLensCorrectionPassShader_fs);
-    shader->SetContext(this->Program->GetContext());
-    this->Program->GetShaders()->AddItem(shader);
-    shader->Delete();
+    vtkShader2 *fsShader=vtkShader2::New();
+    fsShader->SetType(VTK_SHADER_TYPE_FRAGMENT);
+    fsShader->SetSourceCode(vtkOVRPostShaderFull_fs);
+    fsShader->SetContext(this->Program->GetContext());
+    this->Program->GetShaders()->AddItem(fsShader);
+    fsShader->Delete();
     }
 
   this->Program->Build();
@@ -267,12 +278,15 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
 
   vtkgl::ActiveTexture(vtkgl::TEXTURE0+id0);
   to->Bind();
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);*/
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+ // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8);
 
   var=this->Program->GetUniformVariables();
 
-  float DistXOffset = this->DistortionXCenterOffset;
+  float DistXOffset = this->ProjectionOffset[0];
   
   if (!LeftEye) 
     {      
@@ -289,11 +303,8 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
   // Note: Due to shader excution which results in drawing a distorted image to the 
   // left or right half of the frame buffer, the following parameter needs to be
   // defined in texture corrdinates [0 - 1]. 
-  float HScreenSize = 0.14975999;
-  float LensSeparationDistance = 0.063500002;
-
-  float lensCenter[2] = { (wvp + DistXOffset) , y + hvp*0.5f};
-  float screenCenter[2] = {  wvp, y + hvp*0.5f};
+  float lensCenter[2] = { (wvp + DistXOffset*0.5), y + hvp*0.5f};
+  float screenCenter[2] = { wvp, y + hvp*0.5f};
 
   // MA: This is more correct but we would need higher-res texture vertically; 
   // we should adopt this once we have asymmetric input texture scale.
@@ -304,10 +315,11 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
                           (float) this->DistortionK[1], 
                           (float) this->DistortionK[2], 
                           (float) this->DistortionK[3]}; 
-
-  // TODO: Why I have to this????
-  float offsetX = (LeftEye ? -1.0 : 1.0) * 0.1;
-
+  float chromaAberr[4] = {(float) this->ChromaAberration[0], 
+                          (float) this->ChromaAberration[1], 
+                          (float) this->ChromaAberration[2], 
+                          (float) this->ChromaAberration[3]};   
+  
   //float lensCenter[2] = {xvp + (wvp + DistortionXCenterOffset * 0.5f)*0.5f, yvp + hvp*0.5f};
   //float screenCenter[2] = {xvp + wvp*0.5f, yvp + hvp*0.5f};
   //float scale[2] = {(wvp/2.0f) * scaleFactor, (hvp/2.0f) * scaleFactor * as};
@@ -319,7 +331,7 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
   var->SetUniformf("Scale",2,scale);
   var->SetUniformf("ScaleIn",2,scaleIn);
   var->SetUniformf("HmdWarpParam",4,distortionK);
-  var->SetUniformf("OffsetX",1,&offsetX);
+  var->SetUniformf("ChromAbParam",4,chromaAberr);
 
   this->Program->Use();
 
@@ -350,14 +362,25 @@ void vtkLensCorrectionPass::ApplyPostPass(const vtkRenderState *s,
 
 // ----------------------------------------------------------------------------
 // Description:
-void vtkLensCorrectionPass::DrawTextureToScreen()
+void vtkOVRPostPass::DrawTextureToScreen()
 {
   int w = this->OutputTexture->GetWidth();
   int h = this->OutputTexture->GetHeight();
 
   //int outputId = tu->Allocate();
-  glPushAttrib(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT|GL_LIGHTING);
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  
+
+  GLint db;
+  
+
+    // after mucking about with FBO bindings be sure
+    // we're saving the default fbo attributes/blend function
+    vtkgl::BindFramebuffer(vtkgl::FRAMEBUFFER, 0);
+    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    vtkOpenGLCheckErrorMacro("failed at glPushAttrib");
+
+ /*glPushAttrib(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT|GL_LIGHTING); 
+ glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 
   // per-fragment operations
   glDisable(GL_ALPHA_TEST);
@@ -381,11 +404,62 @@ void vtkLensCorrectionPass::DrawTextureToScreen()
   glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
   glPixelStorei(GL_UNPACK_ALIGNMENT,1);// client to server
 
-  vtkgl::ActiveTexture(vtkgl::TEXTURE0);
-  this->OutputTexture->Bind();  
+  vtkgl::ActiveTexture(vtkgl::TEXTURE0);*/
+  /*this->OutputTexture->Bind();  
   this->OutputTexture->CopyToFrameBuffer(0, 0, w-1, h-1, 0, 0, w, h);
   this->OutputTexture->UnBind();
-    
+   */
+ 
+    // draw to fbo
+  this->OutputFrameBuffer->SetNumberOfRenderTargets(1);
+  this->OutputFrameBuffer->SetColorBuffer(0,this->OutputTexture);  
+
+  // because the same FBO can be used in another pass but with several color
+  // buffers, force this pass to use 1, to avoid side effects from the
+  // render of the previous frame.
+  this->OutputFrameBuffer->SetActiveBuffer(0);   
+
+  this->OutputFrameBuffer->Bind();
+
+  vtkOpenGLCheckErrorMacro("failed at vtkgl::BindFramebuffer");
+
+  GLint framebufferBinding;
+  glGetIntegerv(vtkgl::FRAMEBUFFER_BINDING_EXT,&framebufferBinding);
+
+  this->OutputFrameBuffer->UnBind();
+
+  // read from default
+  vtkgl::BindFramebuffer(vtkgl::FRAMEBUFFER, framebufferBinding);
+
+  glGetIntegerv(GL_DRAW_BUFFER, &db);
+  glReadBuffer(db);
+
+  GLenum status = vtkgl::CheckFramebufferStatus(vtkgl::READ_FRAMEBUFFER);
+    if (status!=vtkgl::FRAMEBUFFER_COMPLETE)
+      {
+      vtkErrorMacro("FBO is incomplete " << status);
+      }
+
+   // read from default
+    vtkgl::BindFramebuffer(vtkgl::READ_FRAMEBUFFER, framebufferBinding);
+
+    vtkOpenGLCheckErrorMacro("failed at vtkgl::BindFramebuffer");
+
+     // read from default
+    vtkgl::BindFramebuffer(vtkgl::DRAW_FRAMEBUFFER, 0);
+
+    vtkgl::BlitFramebuffer(0, 0,
+                           w, h,
+                           0, 0,
+                           w, h,
+                           GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT,
+                           GL_NEAREST);
+
+    vtkOpenGLCheckErrorMacro("failed at glBlitFramebuffer");
+     
+     // restore default fbo for both read+draw
+    vtkgl::BindFramebuffer(vtkgl::FRAMEBUFFER, 0);
+
   glPopAttrib();
 }
 
@@ -394,7 +468,7 @@ void vtkLensCorrectionPass::DrawTextureToScreen()
 // Release graphics resources and ask components to release their own
 // resources.
 // \pre w_exists: w!=0
-void vtkLensCorrectionPass::ReleaseGraphicsResources(vtkWindow *w)
+void vtkOVRPostPass::ReleaseGraphicsResources(vtkWindow *w)
 {
   assert("pre: w_exists" && w!=0);
 

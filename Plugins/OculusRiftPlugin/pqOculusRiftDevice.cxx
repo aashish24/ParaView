@@ -51,6 +51,7 @@ public:
   OVR::Ptr<OVR::HMDDevice> pHMD;
   OVR::Ptr<OVR::SensorDevice> pSensor;
   OVR::SensorFusion SFusion;
+  OVR::Util::MagCalibration MagCal;
   OVR::Util::Render::StereoConfig Stereo;
 
   QTimer *Timer;
@@ -100,48 +101,32 @@ bool pqOculusRiftDevice::initialize()
     {  
     OVR::HMDInfo hmd;
     if (this->Internals->pHMD->GetDeviceInfo(&hmd))
-      {
-    /*  this->InterpupillaryDistance = hmd.InterpupillaryDistance;
-      this->DistortionK[0] = hmd.DistortionK[0];
-      this->DistortionK[1] = hmd.DistortionK[1];
-      this->DistortionK[2] = hmd.DistortionK[2];
-      this->DistortionK[3] = hmd.DistortionK[3];
-      this->EyeToScreenDistance = hmd.EyeToScreenDistance;
-      this->LensSeparationDistance = hmd.*/
-      //Rescale input texture coordinates to [-1,1] unit range, and corrects aspectratio.
-      this->ScaleIn = 1.0 - 2.0 * hmd.LensSeparationDistance / hmd.HScreenSize;
-      this->Scale = 1.0; //Rescale output (sample) coordinates back to texture range and increase scale so as to support sampling outside of the screen.
-      this->HmdWarpParam; //The array of distortion coefficients (DistortionK[]).
-      this->ScreenCenter; //Texture coordinate for the center of the half-screen texture. This is used to clamp sampling, preventing pixel leakage from one eye view to the other.
-      this->LensCenter;  
-     // qWarning() << hmd.HScreenSize << ", "  << hmd.VScreenSize;
+      {    
+  
+      this->Internals->pSensor = *this->Internals->pHMD->GetSensor();
+      if (this->Internals->pSensor)
+        {
+        this->Internals->SFusion.AttachToSensor(this->Internals->pSensor);
+        //this->Internals->SFusion.SetYawCorrectionEnabled(true);
+        } 
+
+      this->Internals->Timer = new QTimer();
+      this->Internals->Timer->setInterval(1);
+
+      connect(this->Internals->Timer, SIGNAL(timeout()), this, SLOT(timeoutSlot()));
+
+      this->Internals->Timer->start();
+
+      return true;
       }
-  
-    this->Internals->pSensor = *this->Internals->pHMD->GetSensor();
-  
-    if (this->Internals->pSensor)
-      {
-      this->Internals->SFusion.AttachToSensor(this->Internals->pSensor);
-      this->Internals->SFusion.SetYawCorrectionEnabled(true);
-      } 
-
-    this->Internals->Timer = new QTimer();
-    this->Internals->Timer->setInterval(1);
-
-    connect(this->Internals->Timer, SIGNAL(timeout()), this, SLOT(timeoutSlot()));
-
-    this->Internals->Timer->start();
-
-    return true;
     }
   else
     {
-    qWarning() << "No Oculus Rift Device was found.";    
+    qWarning() << "No Oculus Rift Device was found.";
     }
 
   return false;
 }
-
 
 //-----------------------------------------------------------------------------
 void pqOculusRiftDevice::setViewport(int width, int height)
@@ -150,12 +135,66 @@ void pqOculusRiftDevice::setViewport(int width, int height)
   if (this->Internals->pHMD->GetDeviceInfo(&hmd))
     {
     this->Internals->Stereo.SetFullViewport(
-      OVR::Util::Render::Viewport(0,0, width, height));
-    /*this->Internals->Stereo.SetStereoMode(
-      OVR::Util::Render::Stereo_LeftRight_Multipass);
-    this->Internals->Stereo.SetHMDInfo(hmd);
-    this->Internals->Stereo.SetDistortionFitPointVP(-1.0f, 0.0f);*/
+      OVR::Util::Render::Viewport(0,0, 1280, 800));
+    this->Internals->Stereo.SetStereoMode(OVR::Util::Render::Stereo_LeftRight_Multipass);
+
+    // Configure proper Distortion Fit.
+    // For 7" screen, fit to touch left side of the view, leaving a bit of invisible
+    // screen on the top (saves on rendering cost).
+    // For smaller screens (5.5"), fit to the top.
+    if (hmd.HScreenSize > 0.0f)
+      {
+      if (hmd.HScreenSize > 0.140f) // 7"
+        this->Internals->Stereo.SetDistortionFitPointVP(-1.0f, 0.0f);
+      else
+        this->Internals->Stereo.SetDistortionFitPointVP(0.0f, 1.0f);
+      }
     }
+}
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::getScreenResolution(int &xRes, int &yRes)
+{
+  OVR::HMDInfo hmd;
+  if (this->Internals->pHMD->GetDeviceInfo(&hmd))
+    {
+    xRes = hmd.HResolution;
+    yRes = hmd.VResolution;
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::getScreenSize(double &hSize, double &vSize)
+{
+  OVR::HMDInfo hmd;
+  if (this->Internals->pHMD->GetDeviceInfo(&hmd))
+    {
+    hSize = hmd.HScreenSize;
+    vSize = hmd.VScreenSize;
+    }
+}
+
+//-----------------------------------------------------------------------------
+double pqOculusRiftDevice::getLensSeparation()
+{
+  OVR::HMDInfo hmd;
+  if (this->Internals->pHMD->GetDeviceInfo(&hmd))
+    {
+    return hmd.LensSeparationDistance;
+    }
+  return 0.0;
+}
+
+//-----------------------------------------------------------------------------
+double pqOculusRiftDevice::getIPD()
+{
+  OVR::HMDInfo hmd;
+  if (this->Internals->pHMD->GetDeviceInfo(&hmd))
+    {
+    return this->Internals->Stereo.GetIPD();
+    }
+  return 0.0;
 }
 
 //-----------------------------------------------------------------------------
@@ -164,7 +203,7 @@ double pqOculusRiftDevice::getFieldOfView()
   OVR::HMDInfo hmd;
   if (this->Internals->pHMD->GetDeviceInfo(&hmd))
     {
-    return this->Internals->Stereo.GetYFOVDegrees();
+    return this->Internals->Stereo.GetYFOVDegrees();    
     }
   return 0.0;
 }
@@ -179,6 +218,19 @@ void pqOculusRiftDevice::getDistortionK(double K[4])
     K[1] = this->Internals->Stereo.GetDistortionK(1);
     K[2] = this->Internals->Stereo.GetDistortionK(2);
     K[3] = this->Internals->Stereo.GetDistortionK(3);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::getChromaAberration(double chromaAb[4])
+{
+  OVR::HMDInfo hmd;
+  if (this->Internals->pHMD->GetDeviceInfo(&hmd))
+    {
+    chromaAb[0] = hmd.ChromaAbCorrection[0];
+    chromaAb[1] = hmd.ChromaAbCorrection[1];
+    chromaAb[2] = hmd.ChromaAbCorrection[2];
+    chromaAb[3] = hmd.ChromaAbCorrection[3];
     }
 }
 
@@ -256,20 +308,119 @@ void pqOculusRiftDevice::getOrientation(double orientationMatrix[16])
   }  
 }
 
-void pqOculusRiftDevice::getEulerAngles(float &yaw, float &pitch, float &roll)
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::getEulerAngles(float *yaw, float *pitch, float *roll)
 {
   // We extract Yaw, Pitch, Roll instead of directly using the orientation
   // to allow "additional" yaw manipulation with mouse/controller.
   OVR::Quatf hmdOrient = this->Internals->SFusion.GetOrientation();
   
   hmdOrient.GetEulerAngles<OVR::Axis_Y, OVR::Axis_X, OVR::Axis_Z>(
-    &yaw, &pitch, &roll);
+    yaw, pitch, roll);
+}
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::getCameraSetup(double camEye[3], double eye[3], double lookAt[3], double up[3])
+{
+  // We extract Yaw, Pitch, Roll instead of directly using the orientation
+  // to allow "additional" yaw manipulation with mouse/controller.
+  OVR::Quatf hmdOrient = this->Internals->SFusion.GetPredictedOrientation();
+
+  const OVR::Vector3f UpVector(0.0f, 1.0f, 0.0f);
+  const OVR::Vector3f ForwardVector(0.0f, 0.0f, -1.0f);
+
+  OVR::Vector3f EyePos(camEye[0], camEye[1], camEye[2]);
+  
+  float yaw = 0.0;
+  float pitch = 0.0;
+  float roll = 0.0;
+  
+  hmdOrient.GetEulerAngles<OVR::Axis_Y, OVR::Axis_X, OVR::Axis_Z>(&yaw, &pitch, &roll);
+  
+  // Rotate and position View Camera, using YawPitchRoll in BodyFrame coordinates.
+  // 
+  OVR::Matrix4f rollPitchYaw = OVR::Matrix4f::RotationY(yaw) * OVR::Matrix4f::RotationX(pitch) *
+                          OVR::Matrix4f::RotationZ(roll);
+  OVR::Vector3f upVec      = rollPitchYaw.Transform(UpVector);
+  OVR::Vector3f forwardVec = rollPitchYaw.Transform(ForwardVector);
+      
+  // Minimal head modelling.
+  float headBaseToEyeHeight     = 0.15f;    // Vertical height of eye from base of head
+  float headBaseToEyeProtrusion = 0.09f;    // Distance forward of eye from base of head
+
+  OVR::Vector3f eyeCenterInHeadFrame(0.0f, headBaseToEyeHeight, -headBaseToEyeProtrusion);
+  OVR::Vector3f shiftedEyePos   = EyePos + rollPitchYaw.Transform(eyeCenterInHeadFrame);
+  shiftedEyePos.y -= eyeCenterInHeadFrame.y;  // Bring the head back down to original height
+  
+  eye[0] = shiftedEyePos.x;
+  eye[1] = shiftedEyePos.y;
+  eye[2] = shiftedEyePos.z;
+
+  shiftedEyePos += forwardVec;
+
+  lookAt[0] = shiftedEyePos.x;
+  lookAt[1] = shiftedEyePos.y;
+  lookAt[2] = shiftedEyePos.z;
+
+  up[0] = upVec.x;
+  up[1] = upVec.y;
+  up[2] = upVec.z;
 }
 
 //-----------------------------------------------------------------------------
 void pqOculusRiftDevice::timeoutSlot()
-{
+{   
+  if (this->Internals->MagCal.IsAutoCalibrating() || 
+    this->Internals->MagCal.IsManuallyCalibrating())
+    this->Internals->MagCal.AbortCalibration();
+
+  if (this->Internals->MagCal.IsAutoCalibrating()) 
+    {
+    this->Internals->MagCal.UpdateAutoCalibration(this->Internals->SFusion);
+    int n = this->Internals->MagCal.NumberOfSamples();
+    if (n == 1)
+      qWarning() << "Magnetometer Calibration Has 1 Sample \n " << (4-n) 
+                  << " Remaining - Please Keep Looking Around";
+    else if (n < 4)
+      qWarning() << "Magnetometer Calibration Has " << n 
+                  <<" Samples   \n   " << (4-n) 
+                  << " Remaining - Please Keep Looking Around";
+    if (this->Internals->MagCal.IsCalibrated())
+      {
+      this->Internals->SFusion.SetYawCorrectionEnabled(true);
+      }
+    }
+
   emit updatedData();
+}
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::calibrateSensor()
+{ 
+  if(this->Internals->pSensor)
+    {
+    this->Internals->SFusion.Reset();
+    this->Internals->MagCal.BeginAutoCalibration(this->Internals->SFusion);    
+    }
+}
+
+//-----------------------------------------------------------------------------
+void pqOculusRiftDevice::togglePrediction()
+{ 
+  if(this->Internals->pSensor)
+    {
+    if(this->Internals->SFusion.IsPredictionEnabled())
+      {
+          qWarning() << "Turn off prediction";
+          this->Internals->SFusion.SetPredictionEnabled(false);
+      }
+    else
+      {
+        qWarning() << "Turn on prediction";
+        this->Internals->SFusion.SetPredictionEnabled(true);
+        this->Internals->SFusion.SetPrediction(0.03f);
+      }
+    }
 }
 
 //-----------------------------------------------------------------------------

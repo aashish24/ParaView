@@ -1,7 +1,7 @@
 // ============================================================================
 //
 //  Program:   Visualization Toolkit
-//  Module:    vtkSobelGradientMagnitudePassShader2_fs.glsl
+//  Module:    vtkOVRPostShaderSimple_fs.glsl
 //
 //  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 //  All rights reserved.
@@ -28,7 +28,6 @@ uniform vec2 ScreenCenter;
 uniform vec2 Scale;
 uniform vec2 ScaleIn;
 uniform vec4 HmdWarpParam;
-uniform float OffsetX;
 
 vec2 HmdWarp(vec2 texIn)
 {
@@ -41,17 +40,9 @@ vec2 HmdWarp(vec2 texIn)
 
 void main()
 {
-  vec2 tc = HmdWarp(gl_TexCoord[0].st) + vec2(OffsetX, 0);
+  vec2 tc = HmdWarp(gl_TexCoord[0].st);
   if (any(notEqual(clamp(tc, ScreenCenter-vec2(0.5,0.5), ScreenCenter+vec2(0.5, 0.5)) - tc, vec2(0.0, 0.0))))
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   else
     gl_FragColor = texture2D(source, tc);
-
- /* if(distance(LensCenter, gl_TexCoord[0].st) < 0.01 )
-	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-
-if(distance(ScreenCenter, gl_TexCoord[0].st) < 0.01 )
-	gl_FragColor.y += 1.0;*/
-
-
 };

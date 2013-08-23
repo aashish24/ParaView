@@ -32,8 +32,9 @@ Implemented by Stephan ROGGE
 class vtkFrameBufferObject;
 class vtkTextureObject;
 class vtkTimerLog;
+class vtkOVRCamera;
 
-class vtkDualStereoPass : public vtkImageProcessingPass
+class VTK_EXPORT vtkDualStereoPass : public vtkImageProcessingPass
 {
   public:
   static vtkDualStereoPass *New();
@@ -43,11 +44,7 @@ class vtkDualStereoPass : public vtkImageProcessingPass
   // Description:
   vtkGetMacro(Enable, int);
   vtkSetMacro(Enable, int);
-
-  // Description:
-  vtkGetVector3Macro(DisplaySettings, double);
-  vtkSetVector3Macro(DisplaySettings, double);
-
+    
   //BTX
   // Description:
   // Perform rendering according to a render state \p s.
@@ -65,15 +62,16 @@ class vtkDualStereoPass : public vtkImageProcessingPass
 
   // Description:
   // Scaling the off-screen render target (e.g. to provide a kind of super sampling)
-  void SetTextureDimension(int width, int height);
+  vtkGetVector2Macro(RenderTextureScale, double);
+  vtkSetVector2Macro(RenderTextureScale, double);
 
   // Description:
-  // Scaling the off-screen render target (e.g. to provide a kind of super sampling)
-  void SetTextureScale(float xScale, float yScale);
-  void SetTextureScale(float scale)
-    {
-    SetTextureScale(scale, scale);
-    }
+  vtkGetMacro(EyeSeparation, double);
+  vtkSetMacro(EyeSeparation, double);
+
+  // Description:
+  vtkGetVector2Macro(ProjectionOffset, double);
+  vtkSetVector2Macro(ProjectionOffset, double);
 
 protected:
   // Description:
@@ -85,31 +83,47 @@ protected:
   virtual ~vtkDualStereoPass();
 
   // Description:
-  void InitializeFrameBuffers(const vtkRenderState *s);
+  void InitializeFrameBuffers(const vtkRenderState *s, 
+                                      int fboWidth, 
+                                      int fboHeight);
 
-  // Description:
-  void RenderToFrameBuffer(const vtkRenderState *s,  
-                            vtkTextureObject* target, 
-                            bool left);
-    
+ // Description:  
+  void CheckFramebufferStatus();
+
+    // Description:
+  void RenderMS(const vtkRenderState *s,
+                        int fboWidth,
+                        int fboHeight,
+                        int vpX,
+                        int vpY,
+                        int vpWidth,
+                        int vpHeight,
+                        vtkTextureObject *target);
+
   int Enable;
-  double DisplaySettings[3];
-  float RenderTextureWidth;
-  float RenderTextureHeight;
-  float RenderTextureScaleX;
-  float RenderTextureScaleY;
-  
-  vtkTextureObject *TextureObjectLeft;
-  vtkTextureObject *TextureObjectRight;
+  double EyeSeparation;
+  double ProjectionOffset[2];
+  double RenderTextureScale[2];
 
+  int LastFBOWidth;
+  int LastFBOHeight;
+  
+  vtkTextureObject *TextureObjectLeft;  // To resolve multisampled RenderTarget
+  vtkTextureObject *TextureObjectRight; // To resolve multisampled RenderTarget
+    
   vtkTimerLog *Timer;
   int FrameCounter;
+
+  vtkOVRCamera *OVRCamera;
+
+  int MultiSamples;
 
 private:
   vtkDualStereoPass(const vtkDualStereoPass&);  // Not implemented.
   void operator=(const vtkDualStereoPass&);  // Not implemented.
 
-  vtkFrameBufferObject *StereoFrameBuffer;
+  class vtkInternal;
+  vtkInternal *Internals;
 };
 
 #endif // __vtkDualStereoPass_h_

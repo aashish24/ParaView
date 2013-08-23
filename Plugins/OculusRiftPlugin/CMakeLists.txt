@@ -12,8 +12,6 @@ else()
   include_directories(${VTK_INCLUDE_DIRS})
 endif()
 
-INCLUDE(${QT_USE_FILE})
-
 SET (OR_SDK_INCLUDE_DIR "" CACHE PATH "Path to Oculus Rift SDK include files.")
 SET (OR_SDK_LIBRARY "" CACHE FILEPATH "Path to Oculus Rift SDK library file.")
 
@@ -38,14 +36,19 @@ SET( OR_SOURCE_FILES
   pqOculusRiftView.cxx
   pqOculusRiftPanel.h
   pqOculusRiftPanel.cxx
+  vtkOVRCamera.h
+  vtkOVRCamera.cxx
   vtkDualStereoPass.h
   vtkDualStereoPass.cxx
+  vtkOVRPostPass.h
+  vtkOVRPostPass.cxx
   vtkPVRenderViewOculusRift.h 
   vtkPVRenderViewOculusRift.cxx  
   ${MOC_SRCS})
 
-encode_files_as_strings(ENCODED_STRING_FILES
-   vtkLensCorrectionPassShader_fs.glsl
+encode_files_as_strings(ENCODED_STRING_FILES   
+   vtkOVRPostShaderSimple_fs.glsl
+   vtkOVRPostShaderFull_fs.glsl
    )
 
 ADD_PARAVIEW_AUTO_START(
@@ -81,7 +84,6 @@ add_paraview_plugin(
     ${IFACES_SRCS_WINDOW}
     ${OR_SOURCE_FILES}
   SOURCES
-    vtkLensCorrectionPass.cxx
     ${ENCODED_STRING_FILES}
   )
 

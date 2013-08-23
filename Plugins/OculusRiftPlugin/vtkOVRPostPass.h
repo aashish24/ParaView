@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkLensCorrectionPass.h
+  Module:    vtkOVRPostPass.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -25,8 +25,8 @@ Implemented by Stephan ROGGE
 // .SECTION See Also
 // vtkRenderPass
 
-#ifndef __vtkLensCorrectionPass_h
-#define __vtkLensCorrectionPass_h
+#ifndef __vtkOVRPostPass_h_
+#define __vtkOVRPostPass_h_
 
 #include "vtkRenderingOpenGLModule.h" // For export macro
 #include "vtkDualStereoPass.h"
@@ -39,11 +39,11 @@ class vtkFrameBufferObject;
 class vtkTextureObject;
 class vtkTimerLog;
 
-class vtkLensCorrectionPass : public vtkDualStereoPass
+class VTK_EXPORT vtkOVRPostPass : public vtkDualStereoPass
 {
 public:
-  static vtkLensCorrectionPass *New();
-  vtkTypeMacro(vtkLensCorrectionPass,vtkDualStereoPass);
+  static vtkOVRPostPass *New();
+  vtkTypeMacro(vtkOVRPostPass,vtkDualStereoPass);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   //BTX
@@ -62,10 +62,10 @@ public:
   // Description:
   vtkGetVector4Macro(DistortionK, double);
   vtkSetVector4Macro(DistortionK, double);
- 
+
   // Description:
-  vtkGetMacro(DistortionXCenterOffset, double);
-  vtkSetMacro(DistortionXCenterOffset, double);
+  vtkGetVector4Macro(ChromaAberration, double);
+  vtkSetVector4Macro(ChromaAberration, double);
 
   // Description:
   vtkGetMacro(DistortionScale, double);
@@ -74,21 +74,23 @@ public:
 protected:
   // Description:
   // Default constructor. DelegatePass is set to NULL.
-  vtkLensCorrectionPass();
+  vtkOVRPostPass();
 
   // Description:
   // Destructor.
-  virtual ~vtkLensCorrectionPass();
+  virtual ~vtkOVRPostPass();
 
   // Description:
-  void ApplyPostPass(const vtkRenderState *s, vtkTextureObject* to, int LeftEye);
+  void ApplyPostPass(const vtkRenderState *s, 
+                        vtkTextureObject* to, 
+                        int LeftEye);
 
   // Description:
   void DrawTextureToScreen();
 
   double DistortionK[4];
-  double DistortionXCenterOffset;
   double DistortionScale;
+  double ChromaAberration[4];
 
   // Description:
   // Graphics resources.
@@ -100,8 +102,8 @@ protected:
   int FrameCounter;
 
  private:
-  vtkLensCorrectionPass(const vtkLensCorrectionPass&);  // Not implemented.
-  void operator=(const vtkLensCorrectionPass&);  // Not implemented.
+  vtkOVRPostPass(const vtkOVRPostPass&);  // Not implemented.
+  void operator=(const vtkOVRPostPass&);  // Not implemented.
 };
 
-#endif
+#endif // __vtkOVRPostPass_h_

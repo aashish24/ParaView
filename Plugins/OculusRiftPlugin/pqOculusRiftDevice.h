@@ -35,8 +35,8 @@ This contribution has been developed at the "Brandenburg University of
 Technology Cottbus - Senftenberg" at the chair of "Media Technology."
 Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
-#ifndef __pqOculusRiftDevice_h
-#define __pqOculusRiftDevice_h
+#ifndef __pqOculusRiftDevice_h_
+#define __pqOculusRiftDevice_h_
 
 #include <QObject>
 
@@ -49,23 +49,34 @@ public:
   ~pqOculusRiftDevice();
 
   bool initialize();
-
-  void getOrientation(double orientationMatrix[16]);
-  void getEulerAngles(float &yaw, float &pitch, float &roll);
+  void stop(); 
 
   void setViewport(int width, int height);
 
-  double getFieldOfView();
+  void getScreenResolution(int &xRes, int &yRes);
+  void getScreenSize(double &hSize, double &vSize);
   void getDistortionK(double K[4]);
+  void getChromaAberration(double chromaAb[4]);
+
+  double getLensSeparation();
+  double getIPD();
+  double getFieldOfView();  
   double getDistortionCenter();
   double getDistortionScale();
   double getEyeToScreenDistance();
   double getDeviceAspectRatio();
 
-  void stop();
+  void getOrientation(double orientationMatrix[16]);
+  void getEulerAngles(float *yaw, float *pitch, float *roll);
+  void getCameraSetup(double camEye[3], double eye[3], double lookAt[3], double up[3]);
+  
+public slots:
+  void calibrateSensor();
+  void togglePrediction();
 
 signals:
   void updatedData();
+  
 
 protected slots:
   void timeoutSlot();
@@ -77,13 +88,8 @@ private:
   int WindowWidth;
   int WindowHeight;
 
-  float ScaleIn; //Rescale input texture coordinates to [-1,1] unit range, and corrects aspectratio.
-  float Scale; //Rescale output (sample) coordinates back to texture range and increase scale so as to support sampling outside of the screen.
-  float HmdWarpParam; //The array of distortion coefficients (DistortionK[]).
-  float ScreenCenter; //Texture coordinate for the center of the half-screen texture. This is used to clamp sampling, preventing pixel leakage from one eye view to the other.
-  float LensCenter; // Shifts texture coordinates to center the distortion function around the center of the lens.
-
   class pqInternals;
   pqInternals* Internals;
 };
-#endif
+
+#endif // __pqOculusRiftDevice_h_

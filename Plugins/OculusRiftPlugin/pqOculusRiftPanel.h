@@ -35,12 +35,13 @@ This contribution has been developed at the "Brandenburg University of
 Technology Cottbus - Senftenberg" at the chair of "Media Technology."
 Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
-#ifndef __pqOculusRiftPanel_h
-#define __pqOculusRiftPanel_h
+#ifndef __pqOculusRiftPanel_h_
+#define __pqOculusRiftPanel_h_
 
 #include <QtGui/QDockWidget>
 
 class pqView;
+class vtkPerspectiveTransform;
 
 class pqOculusRiftPanel : public QDockWidget
 {
@@ -51,33 +52,41 @@ public:
     Superclass(t, p, f) { this->constructor(); }
   pqOculusRiftPanel(QWidget *p=0, Qt::WindowFlags f=0):
     Superclass(p, f) { this->constructor(); }
-  virtual ~pqOculusRiftPanel();  
+  virtual ~pqOculusRiftPanel();
 
 protected slots:
 
   // set the view to show options for
   void setView(pqView* view);
-
   void updateView();
-
   void setTrackingEnabled(bool value);
-  void setTrackingClientEnabled(bool value);
   void setStereoPostEnabled(bool value);
+  void onChangeFOV(int value);
+
+protected:
+
+  void connectGUI();
+  void sendParameters();
 
 private:
   pqOculusRiftPanel(const pqOculusRiftPanel&); // Not implemented.
   void operator=(const pqOculusRiftPanel&); // Not implemented.
 
   void constructor();
-  void connectGUI();
 
+  int deviceIntialized;
   int viewPortWidth;
   int viewPortHeight;
   bool Tracking;
-  bool TrackingClient;
   bool StereoPostClient;
+  float UserFOV;
+
+  double LastSensorEye[3];
+  double LastSensorLookAt[3];
+  double LastSensorUp[3];
 
   class pqInternals;
   pqInternals* Internal;
 };
-#endif
+
+#endif // __pqOculusRiftPanel_h_

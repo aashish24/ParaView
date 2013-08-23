@@ -35,8 +35,8 @@ This contribution has been developed at the "Brandenburg University of
 Technology Cottbus - Senftenberg" at the chair of "Media Technology."
 Implemented by Stephan ROGGE
 ------------------------------------------------------------------------*/
-#ifndef __pqOculusRiftView_h
-#define __pqOculusRiftView_h
+#ifndef __pqOculusRiftView_h_
+#define __pqOculusRiftView_h_
 
 #include <QObject>
 
@@ -58,4 +58,5 @@ private:
   pqOculusRiftView(const pqOculusRiftView&); // Not implemented.
   void operator=(const pqOculusRiftView&); // Not implemented.
 };
-#endif
+
+#endif // __pqOculusRiftView_h_

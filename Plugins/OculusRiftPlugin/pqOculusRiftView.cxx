@@ -79,22 +79,7 @@ public:
     vtkPVOptions* pvoptions = server->getOptions();
     if (viewtype == "RenderViewOculusRift")
       {
-      vtkSMProxy* newProxy = pxm->NewProxy("views", "RenderViewOculusRift");
-      if (pvoptions->GetUseStereoRendering())
-        {
-        vtkSMPropertyHelper(newProxy, "StereoCapableWindow").Set(1);
-        vtkSMPropertyHelper(newProxy, "StereoRender").Set(1);
-        /*vtkSMEnumerationDomain* domain = vtkSMEnumerationDomain::SafeDownCast(
-          newProxy->GetProperty("StereoType")->GetDomain("enum"));
-        if (domain && domain->HasEntryText(pvoptions->GetStereoType()))
-          {
-          vtkSMPropertyHelper(newProxy, "StereoType").Set(
-            domain->GetEntryValueForText(pvoptions->GetStereoType()));
-          }*/
-        vtkSMPropertyHelper(newProxy, "StereoType").Set(2);
-        newProxy->UpdateVTKObjects();
-        }      
-      return newProxy;
+      return pxm->NewProxy("views", "RenderViewOculusRift");
       }
     return NULL;
     }
