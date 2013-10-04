@@ -447,6 +447,14 @@ int vtkProcessModule::GetPartitionId()
 }
 
 //----------------------------------------------------------------------------
+bool vtkProcessModule::IsMPIInitialized()
+{
+  cerr << this->GetGlobalController()->GetClassName() << " globalcontroller\n";
+  return (this->GetGlobalController() &&
+     this->GetGlobalController()->IsA("vtkMPIController") != 0);
+}
+
+//----------------------------------------------------------------------------
 void vtkProcessModule::PushActiveSession(vtkSession* session)
 {
   assert(session != NULL);
