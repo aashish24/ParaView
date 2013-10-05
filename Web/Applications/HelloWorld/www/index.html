@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="stylesheet" href="../../ext/widgets/jquery-ui/jquery-ui-1.10.0.css" type='text/css'>
+        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.pipeline.css'           type='text/css'>-->
+        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.css'            type='text/css'>-->
+        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.vcr.css'        type='text/css'>-->
+        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.viewport.css'   type='text/css'>-->
+        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.connect.css'    type='text/css'>-->
+        <link rel='stylesheet' href='main.css' type='text/css'>
+
+        <script src="../../ext/js-core/autobahn.min.js"></script>
+        <script src="../../ext/js-core/jquery-1.8.3.min.js"></script>
+        <script src="../../ext/js-core/gl-matrix-min.js"></script>
+        <script src="../../ext/js-core/jquery.hammer.min.js"></script>
+
+        <script src="../../ext/widgets/jscolor/jscolor.js"></script>
+        <script src="../../ext/widgets/jquery-ui/jquery-ui-1.10.0.min.js"></script>
+
+        <script src="../../lib/js/vtkweb-all.js"></script>
+        <!--<script src="../../lib/js/paraview.ui.pipeline.js"></script>-->
+        <!--<script src="../../lib/js/paraview.ui.toolbar.js"></script>-->
+        <!--<script src="../../lib/js/paraview.ui.toolbar.vcr.js"></script>-->
+        <!--<script src="../../lib/js/paraview.ui.toolbar.viewport.js"></script>-->
+        <!--<script src="../../lib/js/paraview.ui.toolbar.connect.js"></script>-->
+    </head>
+
+    <body onbeforeunload="stop()" onunload="stop()" class="page">
+        <button type="button" onclick="createViewport()">Initialize!</button>
+        <div class="splitter">
+            <div class="viewport-container">
+            </div>
+            <div class="control-panel" style="display: none;">
+            </div>
+        </div>
+
+
+        <script type="text/javascript">
+
+            // ==== Global variables ===========================================
+
+            var serviceURL = location.protocol + "//" + location.hostname + ":" + location.port + "/paraview",
+            config = {
+                "sessionManagerURL": serviceURL,
+                "name": "WebVisualizer",
+                "application": "pipeline",
+                "generate-secret": 0 // 0: None / 1: JavaScript generation / 2: Server side generation
+            },
+            pv = { pipeline: null, sources: null, files: null},
+            fetchDataQueueSize = 0;
+
+            // ==== Start a new ParaView Session ===============================
+
+            vtkWeb.start( config,
+            function(connection){
+                pv.connection = connection;
+                if(connection.error) {
+                    alert(connection.error);
+                    window.close();
+                } else {
+                    connect();
+                }
+            }, function(msg){
+                $("#loading").hide();
+                pv.connection = { sessionURL: "ws://" + location.hostname + ":" + location.port + "/ws"};
+                connect();
+            });
+
+            function connect() {
+                if(location.protocol == "http:") {
+                    pv.connection.sessionURL = pv.connection.sessionURL.replace("wss:","ws:");
+                }
+
+                vtkWeb.connect(pv.connection, function(connectionData) {
+                    // Create pipeline browser
+                    pv.connection = connectionData;
+
+                }, function(code,reason){
+                    $(".loading").hide();
+                    console.log(reason);
+                });
+            }
+
+
+            function createViewport() {
+                // viewport
+                $(".viewport-container").empty();
+                pv.viewport = vtkWeb.createViewport({session: pv.connection.session});
+                pv.viewport.bind(".viewport-container");
+            }
+
+
+            $(window).resize(function() {
+                $(".splitter").height(window.innerHeight - 35);
+                $(".control-panel").height(window.innerHeight - 35);
+            }).trigger('resize');
+
+
+            function updateView() {
+                if(pv.viewport) {
+                    pv.viewport.invalidateScene();
+                }
+            }
+
+
+            function stop() {
+                if(pv.hasOwnProperty('connection') && pv.connection.session) {
+                    pv.viewport.unbind();
+                    vtkWeb.stop(pv.connection);
+                    pv = {};
+                }
+            }
+        </script>
+    </body>
+</html>
