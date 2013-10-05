@@ -4,11 +4,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="stylesheet" href="../../ext/widgets/jquery-ui/jquery-ui-1.10.0.css" type='text/css'>
-        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.pipeline.css'           type='text/css'>-->
-        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.css'            type='text/css'>-->
-        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.vcr.css'        type='text/css'>-->
-        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.viewport.css'   type='text/css'>-->
-        <!--<link rel='stylesheet' href='../../lib/css/paraview.ui.toolbar.connect.css'    type='text/css'>-->
         <link rel='stylesheet' href='main.css' type='text/css'>
 
         <script src="../../ext/js-core/autobahn.min.js"></script>
@@ -20,15 +15,10 @@
         <script src="../../ext/widgets/jquery-ui/jquery-ui-1.10.0.min.js"></script>
 
         <script src="../../lib/js/vtkweb-all.js"></script>
-        <!--<script src="../../lib/js/paraview.ui.pipeline.js"></script>-->
-        <!--<script src="../../lib/js/paraview.ui.toolbar.js"></script>-->
-        <!--<script src="../../lib/js/paraview.ui.toolbar.vcr.js"></script>-->
-        <!--<script src="../../lib/js/paraview.ui.toolbar.viewport.js"></script>-->
-        <!--<script src="../../lib/js/paraview.ui.toolbar.connect.js"></script>-->
     </head>
 
     <body onbeforeunload="stop()" onunload="stop()" class="page">
-        <button type="button" onclick="createViewport()">Initialize!</button>
+        <button type="button" onclick="initRender()">Initialize!</button>
         <div class="splitter">
             <div class="viewport-container">
             </div>
@@ -74,8 +64,8 @@
                 }
 
                 vtkWeb.connect(pv.connection, function(connectionData) {
-                    // Create pipeline browser
                     pv.connection = connectionData;
+                    createViewport();
 
                 }, function(code,reason){
                     $(".loading").hide();
@@ -85,12 +75,21 @@
 
 
             function createViewport() {
-                // viewport
                 $(".viewport-container").empty();
                 pv.viewport = vtkWeb.createViewport({session: pv.connection.session});
                 pv.viewport.bind(".viewport-container");
             }
 
+
+            function initRender() {
+                if (pv.connection && pv.connection.session) {
+                    pv.connection.session.call("vtk:initRender").then(function(res) {
+                        // Output message
+                        console.log(res);
+                        pv.viewport.render();
+                    });
+                }
+            }
 
             $(window).resize(function() {
                 $(".splitter").height(window.innerHeight - 35);

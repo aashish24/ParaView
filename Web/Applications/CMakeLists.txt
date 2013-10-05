@@ -10,6 +10,7 @@ set (WEB_APPLICATIONS
   WebFileViewer
   WebVisualizer
   ParallelViz
+  HelloWorld
 )
 
 # Create paraview/web directory
