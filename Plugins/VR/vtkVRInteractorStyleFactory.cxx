@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vtkVRGrabWorldStyle.h"
 #include "vtkVRSpaceNavigatorGrabWorldStyle.h"
 #include "vtkVRTrackStyle.h"
+#include "vtkVRHMDTrackStyle.h"
 
 //-----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkVRInteractorStyleFactory)
@@ -49,6 +50,10 @@ vtkVRInteractorStyleFactory::vtkVRInteractorStyleFactory()
   // Add TrackStyle
   this->InteractorStyleClassNames.push_back("vtkVRTrackStyle");
   this->InteractorStyleDescriptions.push_back("Track");
+
+  // Add HMDTrackStyle
+  this->InteractorStyleClassNames.push_back("vtkVRHMDTrackStyle");
+  this->InteractorStyleDescriptions.push_back("HMD");
 
   // Add GrabWorldStyle
   this->InteractorStyleClassNames.push_back("vtkVRGrabWorldStyle");
@@ -131,6 +136,10 @@ vtkVRInteractorStyleFactory::NewInteractorStyleFromClassName(
   if (name == "vtkVRTrackStyle")
     {
     return vtkVRTrackStyle::New();
+    }
+  if (name == "vtkVRHMDTrackStyle")
+    {
+    return vtkVRHMDTrackStyle::New();
     }
   else if (name == "vtkVRGrabWorldStyle")
     {

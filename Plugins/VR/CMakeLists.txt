@@ -81,8 +81,8 @@ if(PARAVIEW_QT_VERSION VERSION_GREATER "4")
     vtkVRInteractorStyleFactory.h
     vtkVRQueue.h
     vtkVRTrackStyle.h
+    yyvtkVRHMDTrackStyle.h
     )
-
   QT5_WRAP_UI(UI_SRCS
     pqVRDockPanel.ui
     pqVRAddConnectionDialog.ui
@@ -105,6 +105,7 @@ else()
     vtkVRInteractorStyleFactory.h
     vtkVRQueue.h
     vtkVRTrackStyle.h
+    vtkVRHMDTrackStyle.h
     )
 
   QT4_WRAP_UI(UI_SRCS
@@ -130,6 +131,7 @@ SET( VR_SOURCE_FILES
   vtkVRInteractorStyleFactory.cxx
   vtkVRQueue.cxx
   vtkVRTrackStyle.cxx
+  vtkVRHMDTrackStyle.cxx
   vtkVRSpaceNavigatorGrabWorldStyle.cxx
   ${MOC_SRCS})
 
