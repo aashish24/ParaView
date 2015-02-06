@@ -143,7 +143,7 @@ find_path(VTKMAP_INCLUDE_DIR vtkMap.h)
 find_library(VTKMAP_LIBRARY vtkmap)
 mark_as_advanced(VTKMAP_INCLUDE_DIR VTKMAP_LIBRARY)
 
-include_directories(${VTKMAP_INCLUDE_DIRS})
+include_directories(${VTKMAP_INCLUDE_DIR})
 
 # Use a custom hints file for this module.
 set(${vtk-module}_WRAP_HINTS "${CMAKE_CURRENT_SOURCE_DIR}/hints")

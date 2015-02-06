@@ -7652,9 +7652,16 @@
           </PropertyGroup>
         </ExposedProperties>
       </SubProxy>
-
-      <!-- End of ComparativeXYBarChartView -->
     </ComparativeViewProxy>
+          <!-- End of ComparativeXYBarChartView -->
+      <RenderViewProxy base_proxygroup="views"
+               base_proxyname="RenderView"
+               class="vtkPVGeoMapView"
+               name="GeoMap"
+               label="GeoMap View"
+               processes="client|dataserver|renderserver">
+    </RenderViewProxy>
+
      <!-- ================================================================== -->
      <MultiSliceViewProxy name="MultiSlice" class="vtkPVMultiSliceView"
          processes="client|renderserver|dataserver"

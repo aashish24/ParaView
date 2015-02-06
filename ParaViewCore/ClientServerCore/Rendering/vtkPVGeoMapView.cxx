@@ -35,6 +35,11 @@
 #include "vtkTilesHelper.h"
 #include "vtkTimerLog.h"
 
+#include <vtkMap.h>
+#include <vtkOsmLayer.h>
+
+vtkStandardNewMacro(vtkPVGeoMapView);
+
 //----------------------------------------------------------------------------
 vtkPVGeoMapView::vtkPVGeoMapView()
 {
@@ -45,10 +50,19 @@ vtkPVGeoMapView::vtkPVGeoMapView()
   this->UseOffscreenRendering =
     (options? options->GetUseOffscreenRendering() != 0 : false);
 
-  this->RenderWindow = this->SynchronizedWindows->NewRenderWindow();
-  this->RenderWindow->SetOffScreenRendering(this->UseOffscreenRendering? 1 : 0);
+  // this->Renderer = vtkRenderer::New();
+  // this->RenderWindow = this->SynchronizedWindows->NewRenderWindow();
+  // this->RenderWindow->SetOffScreenRendering(this->UseOffscreenRendering? 1 : 0);
+  // this->RenderWindow->AddRenderer(this->Renderer);
   this->Map = vtkMap::New();
-  this->Map->SetRenderWindow(this->RenderWindow);
+  // TODO
+  this->Map->SetRenderer(this->GetRenderer());
+  this->Map->SetCenter(0.0, 0.0);
+  this->Map->SetZoom(1);
+
+  vtkNew<vtkOsmLayer> osmLayer;
+  //osmLayer->DebugOn();
+  this->Map->AddLayer(osmLayer.GetPointer());
 
   // Disable interactor on server processes (or batch processes), since
   // otherwise the vtkContextInteractorStyle triggers renders on changes to the
@@ -77,7 +91,6 @@ vtkPVGeoMapView::vtkPVGeoMapView()
 vtkPVGeoMapView::~vtkPVGeoMapView()
 {
   vtkTileDisplayHelper::GetInstance()->EraseTile(this->Identifier);
-
   this->RenderWindow->Delete();
   this->Map->Delete();
 }
@@ -85,14 +98,14 @@ vtkPVGeoMapView::~vtkPVGeoMapView()
 //----------------------------------------------------------------------------
 void vtkPVGeoMapView::Initialize(unsigned int id)
 {
-  if (this->Identifier == id)
-    {
-    // already initialized
-    return;
-    }
-  this->SynchronizedWindows->AddRenderWindow(id, this->RenderWindow);
-  this->SynchronizedWindows->AddRenderer(id, this->ContextView->GetRenderer());
-  this->Superclass::Initialize(id);
+  // if (this->Identifier == id)
+  //   {
+  //   // already initialized
+  //   return;
+  //   }
+  // this->SynchronizedWindows->AddRenderWindow(id, this->RenderWindow);
+  // this->SynchronizedWindows->AddRenderer(id, this->Map->GetRenderer());
+  // this->Superclass::Initialize(id);
 }
 
 //----------------------------------------------------------------------------
@@ -280,33 +293,33 @@ void vtkPVGeoMapView::OnEndRender()
 }
 
 //----------------------------------------------------------------------------
-template <class T>
-vtkSelection* vtkPVGeoMapView::GetSelectionImplementation(T* chart)
-{
-  if (vtkSelection* selection = chart->GetAnnotationLink()->GetCurrentSelection())
-    {
-    if (this->SelectionClone == NULL ||
-      this->SelectionClone->GetMTime() < selection->GetMTime() ||
-      this->SelectionClone->GetMTime() < chart->GetAnnotationLink()->GetMTime())
-      {
-      // we need to treat vtkSelection obtained from vtkAnnotationLink as
-      // constant and not modify it. Hence, we create a clone.
-      this->SelectionClone = vtkSmartPointer<vtkSelection>::New();
-      this->SelectionClone->ShallowCopy(selection);
+// template <class T>
+// vtkSelection* vtkPVGeoMapView::GetSelectionImplementation(T* chart)
+// {
+//   if (vtkSelection* selection = chart->GetAnnotationLink()->GetCurrentSelection())
+//     {
+//     if (this->SelectionClone == NULL ||
+//       this->SelectionClone->GetMTime() < selection->GetMTime() ||
+//       this->SelectionClone->GetMTime() < chart->GetAnnotationLink()->GetMTime())
+//       {
+//       // we need to treat vtkSelection obtained from vtkAnnotationLink as
+//       // constant and not modify it. Hence, we create a clone.
+//       this->SelectionClone = vtkSmartPointer<vtkSelection>::New();
+//       this->SelectionClone->ShallowCopy(selection);
 
-      // Allow the view to transform the selection as appropriate since the raw
-      // selection created by the VTK view is on the "transformed" data put in
-      // the view and not original input data.
-      if (this->MapSelectionToInput(this->SelectionClone) == false)
-        {
-        this->SelectionClone->Initialize();
-        }
-      }
-    return this->SelectionClone;
-    }
-  this->SelectionClone = NULL;
-  return NULL;
-}
+//       // Allow the view to transform the selection as appropriate since the raw
+//       // selection created by the VTK view is on the "transformed" data put in
+//       // the view and not original input data.
+//       if (this->MapSelectionToInput(this->SelectionClone) == false)
+//         {
+//         this->SelectionClone->Initialize();
+//         }
+//       }
+//     return this->SelectionClone;
+//     }
+//   this->SelectionClone = NULL;
+//   return NULL;
+// }
 
 //----------------------------------------------------------------------------
 vtkSelection* vtkPVGeoMapView::GetSelection()
@@ -320,24 +333,24 @@ vtkSelection* vtkPVGeoMapView::GetSelection()
   //   return this->GetSelectionImplementation(schart);
   //   }
 
-  vtkWarningMacro("Unsupported context item type.");
-  this->SelectionClone = NULL;
+  // vtkWarningMacro("Unsupported context item type.");
+  // this->SelectionClone = NULL;
   return NULL;
 }
 
 //----------------------------------------------------------------------------
 bool vtkPVGeoMapView::MapSelectionToInput(vtkSelection* sel)
 {
-  for (int cc = 0, max = this->GetNumberOfRepresentations(); cc < max; cc++)
-    {
-    vtkChartRepresentation* repr = vtkChartRepresentation::SafeDownCast(
-      this->GetRepresentation(cc));
-    if (repr && repr->GetVisibility() && repr->MapSelectionToInput(sel))
-      {
-      return true;
-      }
-    }
-  // error! we cannot have  a selection created in the view, there's no visible
+  // for (int cc = 0, max = this->GetNumberOfRepresentations(); cc < max; cc++)
+  //   {
+  //   vtkChartRepresentation* repr = vtkChartRepresentation::SafeDownCast(
+  //     this->GetRepresentation(cc));
+  //   if (repr && repr->GetVisibility() && repr->MapSelectionToInput(sel))
+  //     {
+  //     return true;
+  //     }
+  //   }
+  // OnEndRenderor! we cannot have  a selection created in the view, there's no visible
   // representation!
   return false;
 }

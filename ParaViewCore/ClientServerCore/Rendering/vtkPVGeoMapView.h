@@ -21,19 +21,20 @@
 #define __vtkPVGeoMapView_h
 
 #include "vtkPVClientServerCoreRenderingModule.h" //needed for exports
-#include "vtkPVView.h"
+#include "vtkPVRenderView.h"
 #include "vtkSmartPointer.h" // needed for vtkSmartPointer.
 
-class vtkAbstractContextItem;
 class vtkMap;
 class vtkInformationIntegerKey;
+class vtkRenderer;
 class vtkRenderWindow;
 class vtkSelection;
 
-class VTKPVCLIENTSERVERCORERENDERING_EXPORT vtkPVGeoMapView : public vtkPVView
+class VTKPVCLIENTSERVERCORERENDERING_EXPORT vtkPVGeoMapView : public vtkPVRenderView
 {
 public:
-  vtkTypeMacro(vtkPVGeoMapView, vtkPVView);
+  static vtkPVGeoMapView* New();
+  vtkTypeMacro(vtkPVGeoMapView, vtkPVRenderView);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -89,8 +90,8 @@ public:
   // the chart using annotation link. Note this is meant to pass selection for
   // the local process alone. The view does not manage data movement for the
   // selection.
-  virtual void SetSelection(vtkChartRepresentation* repr,
-    vtkSelection* selection) = 0;
+  // virtual void SetSelection(vtkChartRepresentation* repr,
+  //   vtkSelection* selection) = 0;
 
   // Description:
   // Get the current selection created in the view. This will call
@@ -129,6 +130,7 @@ protected:
 
   vtkMap* Map;
   vtkRenderWindow* RenderWindow;
+  vtkRenderer* Renderer;
 
   bool UseOffscreenRenderingForScreenshots;
   bool UseOffscreenRendering;
