@@ -96,6 +96,7 @@ set (Module_SRCS
   vtkThreeSliceFilter.cxx
   vtkUnstructuredGridVolumeRepresentation.cxx
   vtkXYChartRepresentation.cxx
+  vtkPVGeoMapView.cxx
 )
 
 # Disabled unless using the OpenGL backend.
@@ -138,6 +139,13 @@ set_source_files_properties(
 
 set (${vtk-module}_HDRS vtkStreamingPriorityQueue.h)
 
+find_path(VTKMAP_INCLUDE_DIR vtkMap.h)
+find_library(VTKMAP_LIBRARY vtkmap)
+mark_as_advanced(VTKMAP_INCLUDE_DIR VTKMAP_LIBRARY)
+
+include_directories(${VTKMAP_INCLUDE_DIRS})
+
 # Use a custom hints file for this module.
 set(${vtk-module}_WRAP_HINTS "${CMAKE_CURRENT_SOURCE_DIR}/hints")
 vtk_module_library(vtkPVClientServerCoreRendering ${Module_SRCS})
+vtk_module_link_libraries(vtkPVClientServerCoreRendering LINK_PRIVATE ${VTKMAP_LIBRARY})
