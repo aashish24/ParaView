@@ -1,0 +1,148 @@
+/*=========================================================================
+
+  Program:   ParaView
+  Module:    vtkPVGeoMapView.h
+
+  Copyright (c) Kitware, Inc.
+  All rights reserved.
+  See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// .NAME vtkPVGeoMapView
+// .SECTION Description
+// vtkPVGeoMapView adopts vtkContextView so that it can be used in ParaView
+// configurations.
+
+#ifndef __vtkPVGeoMapView_h
+#define __vtkPVGeoMapView_h
+
+#include "vtkPVClientServerCoreRenderingModule.h" //needed for exports
+#include "vtkPVView.h"
+#include "vtkSmartPointer.h" // needed for vtkSmartPointer.
+
+class vtkAbstractContextItem;
+class vtkMap;
+class vtkInformationIntegerKey;
+class vtkRenderWindow;
+class vtkSelection;
+
+class VTKPVCLIENTSERVERCORERENDERING_EXPORT vtkPVGeoMapView : public vtkPVView
+{
+public:
+  vtkTypeMacro(vtkPVGeoMapView, vtkPVView);
+  void PrintSelf(ostream& os, vtkIndent indent);
+
+  // Description:
+  // Triggers a high-resolution render.
+  // @CallOnAllProcessess
+  virtual void StillRender();
+
+  // Description:
+  // Triggers a interactive render. Based on the settings on the view, this may
+  // result in a low-resolution rendering or a simplified geometry rendering.
+  // @CallOnAllProcessess
+  virtual void InteractiveRender();
+
+  // Description:
+  // Get the context view.
+  vtkGetObjectMacro(Map, vtkMap);
+
+  // Description:
+  vtkGetObjectMacro(RenderWindow, vtkRenderWindow);
+
+  // Description:
+  // Initialize the view with an identifier. Unless noted otherwise, this method
+  // must be called before calling any other methods on this class.
+  // @CallOnAllProcessess
+  virtual void Initialize(unsigned int id);
+
+  // Description:
+  // Overridden to ensure that in multi-client configurations, same set of
+  // representations are "dirty" on all processes to avoid race conditions.
+  virtual void Update();
+
+  // Description:
+  // Set or get whether offscreen rendering should be used during
+  // CaptureWindow calls. On Apple machines, this flag has no effect.
+  vtkSetMacro(UseOffscreenRenderingForScreenshots, bool);
+  vtkBooleanMacro(UseOffscreenRenderingForScreenshots, bool);
+  vtkGetMacro(UseOffscreenRenderingForScreenshots, bool);
+
+  // Description:
+  // Get/Set whether to use offscreen rendering for all rendering. This is
+  // merely a suggestion. If --use-offscreen-rendering command line option is
+  // specified, then setting this flag to 0 on that process has no effect.
+  // Setting it to true, however, will ensure that even is
+  // --use-offscreen-rendering is not specified, it will use offscreen
+  // rendering.
+  virtual void SetUseOffscreenRendering(bool);
+  vtkBooleanMacro(UseOffscreenRendering, bool);
+  vtkGetMacro(UseOffscreenRendering, bool);
+
+  // Description:
+  // Representations can use this method to set the selection for a particular
+  // representation. Subclasses override this method to pass on the selection to
+  // the chart using annotation link. Note this is meant to pass selection for
+  // the local process alone. The view does not manage data movement for the
+  // selection.
+  virtual void SetSelection(vtkChartRepresentation* repr,
+    vtkSelection* selection) = 0;
+
+  // Description:
+  // Get the current selection created in the view. This will call
+  // this->MapSelectionToInput() to transform the selection every time a new
+  // selection is available. Subclasses should override MapSelectionToInput() to
+  // convert the selection, as appropriate.
+  vtkSelection* GetSelection();
+
+//BTX
+protected:
+  vtkPVGeoMapView();
+  ~vtkPVGeoMapView();
+
+  // Description:
+  // Actual rendering implementation.
+  virtual void Render(bool interactive);
+
+  // Description:
+  // Called to transform the selection. This is only called on the client-side.
+  // Subclasses should transform the selection in place as needed. Default
+  // implementation simply goes to the first visible representation and asks it
+  // to transform (by calling vtkChartRepresentation::MapSelectionToInput()).
+  // We need to extend the infrastructrue to work properly when making
+  // selections in views showing multiple representations, but until that
+  // happens, this naive approach works for most cases.
+  // Return false on failure.
+  virtual bool MapSelectionToInput(vtkSelection*);
+
+  // Description:
+  // Callbacks called when the primary "renderer" in the vtkContextView
+  // starts/ends rendering. Note that this is called on the renderer, hence
+  // before the rendering cleanup calls like SwapBuffers called by the
+  // render-window.
+  void OnStartRender();
+  void OnEndRender();
+
+  vtkMap* Map;
+  vtkRenderWindow* RenderWindow;
+
+  bool UseOffscreenRenderingForScreenshots;
+  bool UseOffscreenRendering;
+private:
+  vtkPVGeoMapView(const vtkPVGeoMapView&); // Not implemented
+  void operator=(const vtkPVGeoMapView&); // Not implemented
+
+  // // Used in GetSelection to avoid modifying the selection obtained from the
+  // // annotation link.
+  // vtkSmartPointer<vtkSelection> SelectionClone;
+
+  // template <class T>
+  // vtkSelection* GetSelectionImplementation(T* chart);
+//ETX
+};
+
+#endif
