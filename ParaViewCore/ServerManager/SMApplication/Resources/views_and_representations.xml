@@ -7659,6 +7659,7 @@
                class="vtkPVGeoMapView"
                name="GeoMap"
                label="GeoMap View"
+               representation_name="GeoMapRepresentation"
                processes="client|dataserver|renderserver">
     </RenderViewProxy>
 
@@ -8302,6 +8303,14 @@
         </Documentation>
       </DoubleMapProperty>
       <!-- End of SurfaceRepresentationBase -->
+    </RepresentationProxy>
+
+    <RepresentationProxy class="vtkPVGeoMapRepresentation"
+                         name="GeoMapRepresentation"
+                         processes="client|renderserver|dataserver">
+      <Documentation>Representation to show any dataset in a 3D render
+      view.</Documentation>
+      <!-- End of GeoMapRepresentation -->
     </RepresentationProxy>
 
   </ProxyGroup>

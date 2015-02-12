@@ -96,6 +96,7 @@ set (Module_SRCS
   vtkThreeSliceFilter.cxx
   vtkUnstructuredGridVolumeRepresentation.cxx
   vtkXYChartRepresentation.cxx
+  vtkPVGeoMapRepresentation.cxx
   vtkPVGeoMapView.cxx
 )
 
